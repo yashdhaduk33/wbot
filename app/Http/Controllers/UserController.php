@@ -141,4 +141,20 @@ class UserController extends Controller
         return redirect()->route('admin.users.index')
             ->with('success', "User {$status} successfully.");
     }
+
+    public function role()
+    {
+        return $this->belongsTo(\App\Models\Role::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(\App\Models\Department::class);
+    }
+
+    public function isAdmin()
+    {
+        return $this->role && $this->role->slug === 'admin';
+    }
+
 }

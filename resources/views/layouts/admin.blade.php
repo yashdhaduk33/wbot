@@ -61,6 +61,64 @@
         .table-actions {
             min-width: 150px;
         }
+
+        /* Add these styles to your existing admin styles */
+        .bg-orange {
+            background-color: #f97316 !important;
+        }
+
+        .text-orange {
+            color: #f97316 !important;
+        }
+
+        .bg-opacity-10 {
+            --bs-bg-opacity: 0.1;
+        }
+
+        .progress {
+            background-color: #e9ecef;
+            border-radius: 0.25rem;
+        }
+
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+
+        .list-group-item {
+            transition: background-color 0.2s;
+        }
+
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .dropdown-item svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .modal-content {
+            border: none;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-label {
+            font-size: 0.875rem;
+            color: #4a5568;
+        }
+
+        .table th {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: #4a5568;
+            border-bottom-width: 1px;
+        }
+
+        .table td {
+            font-size: 0.875rem;
+            vertical-align: middle;
+        }
     </style>
 </head>
 
@@ -139,6 +197,43 @@
                                     d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                             </svg>
                             Departments
+                        </a>
+                    </li>
+                </ul>
+                {{-- Add this after User Management section and before System section --}}
+                <div class="sidebar-section px-3 pt-3 pb-2">Ticket Management</div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('admin.tickets.dashboard') ? 'active' : '' }}"
+                            href="{{ route('admin.tickets.dashboard') }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                            </svg>
+                            Ticket Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('admin.tickets.index') ? 'active' : '' }}"
+                            href="{{ route('admin.tickets.index') }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            All Tickets
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link d-flex align-items-center gap-2 {{ request()->routeIs('admin.tickets.create') ? 'active' : '' }}"
+                            href="{{ route('admin.tickets.create') }}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M12 4v16m8-8H4" />
+                            </svg>
+                            Create Ticket
                         </a>
                     </li>
                 </ul>

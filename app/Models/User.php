@@ -68,12 +68,12 @@ class User extends Authenticatable
         if (!$this->role) {
             return false;
         }
-        
+
         // Check by slug or name
         if ($this->role->slug) {
             return in_array($this->role->slug, ['admin', 'super-admin', 'administrator']);
         }
-        
+
         // Check by name if slug doesn't exist
         return in_array(strtolower($this->role->name), ['admin', 'super admin', 'administrator']);
     }
@@ -86,11 +86,11 @@ class User extends Authenticatable
         if (!$this->role) {
             return false;
         }
-        
+
         if ($this->role->slug) {
             return $this->role->slug === 'super-admin';
         }
-        
+
         return strtolower($this->role->name) === 'super admin';
     }
 
@@ -117,7 +117,7 @@ class User extends Authenticatable
         if (is_string($role)) {
             return $this->role->slug === $role || strtolower($this->role->name) === strtolower($role);
         }
-        
+
         return $this->role->id === $role->id;
     }
 
@@ -128,4 +128,32 @@ class User extends Authenticatable
     {
         return $this->role ? $this->role->name : 'No Role';
     }
+
+    public function createdTickets()
+    {
+        return $this->hasMany(Ticket::class, 'created_by');
+    }
+
+    public function assignedTickets()
+    {
+        return $this->hasMany(Ticket::class, 'assigned_to');
+    }
+
+    public function ticketComments()
+    {
+        return $this->hasMany(TicketComment::class);
+    }
+
+    public function notifications()
+    {
+        return $this->morphMany(\Illuminate\Notifications\DatabaseNotification::class, 'notifiable')
+            ->orderBy('created_at', 'desc');
+    }
+
+    public function unreadNotificationsCount()
+    {
+        return $this->unreadNotifications()->count();
+    }
+
+    
 }
