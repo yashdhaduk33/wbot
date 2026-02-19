@@ -16,55 +16,57 @@
         </div>
 
         <!-- Filters -->
-        @if(isset($roles) && isset($departments))
-            <div class="card shadow mb-4">
-                <div class="card-body">
-                    <form action="{{ route('admin.users.index') }}" method="GET" class="row g-3">
-                        <div class="col-md-3">
-                            <input type="text" name="search" class="form-control" placeholder="Search by name or email..."
-                                value="{{ request('search') }}">
-                        </div>
-                        <div class="col-md-3">
-                            <select name="role" class="form-select">
-                                <option value="">All Roles</option>
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <form action="{{ route('admin.users.index') }}" method="GET" class="row g-3">
+                    <div class="col-md-3">
+                        <input type="text" name="search" class="form-control" placeholder="Search by name or email..."
+                            value="{{ request('search') }}">
+                    </div>
+                    <div class="col-md-3">
+                        <select name="role" class="form-select">
+                            <option value="">All Roles</option>
+                            @if(isset($roles) && $roles)
                                 @foreach($roles as $role)
                                     <option value="{{ $role->id }}" {{ request('role') == $role->id ? 'selected' : '' }}>
                                         {{ $role->name }}
                                     </option>
                                 @endforeach
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <select name="department" class="form-select">
-                                <option value="">All Departments</option>
+                            @endif
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="department" class="form-select">
+                            <option value="">All Departments</option>
+                            @if(isset($departments) && $departments)
                                 @foreach($departments as $dept)
                                     <option value="{{ $dept->id }}" {{ request('department') == $dept->id ? 'selected' : '' }}>
                                         {{ $dept->name }}
                                     </option>
                                 @endforeach
-                            </select>
+                            @endif
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <select name="status" class="form-select">
+                            <option value="">All Status</option>
+                            <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                            <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-filter"></i> Filter
+                            </button>
+                            <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">
+                                <i class="fas fa-redo"></i> Reset
+                            </a>
                         </div>
-                        <div class="col-md-3">
-                            <select name="status" class="form-select">
-                                <option value="">All Status</option>
-                                <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
-                                <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
-                            </select>
-                        </div>
-                        <div class="col-md-12">
-                            <div class="d-flex justify-content-between">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-filter"></i> Filter
-                                </button>
-                                <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">
-                                    <i class="fas fa-redo"></i> Reset
-                                </a>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                </form>
             </div>
-        @endif
+        </div>
 
         <div class="card shadow">
             <div class="card-body">
@@ -82,116 +84,118 @@
                     </div>
                 @endif
 
-                @if(!isset($users) || $users === null)
-                    <div class="alert alert-warning">
-                        <i class="fas fa-exclamation-triangle"></i> No users data available.
-                    </div>
-                @else
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>User</th>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Department</th>
+                                <th>Status</th>
+                                <th>Last Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($users as $user)
                                 <tr>
-                                    <th>ID</th>
-                                    <th>User</th>
-                                    <th>Email</th>
-                                    <th>Role</th>
-                                    <th>Department</th>
-                                    <th>Status</th>
-                                    <th>Last Login</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($users as $user)
-                                    <tr>
-                                        <td>{{ $user->id }}</td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                @if($user->avatar)
-                                                    <img src="{{ asset('storage/' . $user->avatar) }}" alt="{{ $user->name }}"
-                                                        class="rounded-circle me-2" width="32" height="32">
-                                                @else
-                                                    <div class="avatar-placeholder rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
-                                                        style="width: 32px; height: 32px; font-size: 12px;">
-                                                        {{ substr($user->name, 0, 2) }}
-                                                    </div>
-                                                @endif
-                                                <div>
-                                                    <strong>{{ $user->name }}</strong>
-                                                    <div class="small text-muted">{{ $user->position ?? 'No position' }}</div>
+                                    <td>{{ $user->id }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            @if($user->avatar)
+                                                <img src="{{ asset('storage/' . $user->avatar) }}" alt="{{ $user->name }}"
+                                                    class="rounded-circle me-2" width="32" height="32" style="object-fit: cover;">
+                                            @else
+                                                <div class="avatar-placeholder rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-2"
+                                                    style="width: 32px; height: 32px; font-size: 12px;">
+                                                    {{ substr($user->name, 0, 2) }}
                                                 </div>
+                                            @endif
+                                            <div>
+                                                <strong>{{ $user->name }}</strong>
+                                                <div class="small text-muted">{{ $user->position ?? 'No position' }}</div>
                                             </div>
-                                        </td>
-                                        <td>{{ $user->email }}</td>
-                                        <td>
-                                            @if($user->roles && $user->roles->count() > 0)
-                                                @foreach($user->roles as $role)
-                                                    <span class="badge bg-primary">{{ $role->name }}</span>
-                                                @endforeach
-                                            @else
-                                                <span class="badge bg-secondary">No role</span>
+                                        </div>
+                                    </td>
+                                    <td>{{ $user->email }}</td>
+                                    <td>
+                                        @if($user->role)
+                                            <span class="badge bg-primary">{{ $user->role->name }}</span>
+                                            @if(!$user->role->is_active)
+                                                <span class="badge bg-warning">Inactive Role</span>
                                             @endif
-                                        </td>
-                                        <td>
-                                            @if($user->department)
-                                                <span class="badge bg-info">{{ $user->department->name }}</span>
-                                            @else
-                                                <span class="text-muted">Not assigned</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-{{ $user->is_active ? 'success' : 'danger' }}">
-                                                {{ $user->is_active ? 'Active' : 'Inactive' }}
+                                        @else
+                                            <span class="badge bg-secondary">No role</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($user->department)
+                                            <span class="badge bg-info">{{ $user->department->name }}</span>
+                                        @else
+                                            <span class="text-muted">Not assigned</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ $user->is_active ? 'success' : 'danger' }}">
+                                            {{ $user->is_active ? 'Active' : 'Inactive' }}
+                                        </span>
+                                        @if($user->email_verified_at)
+                                            <span class="badge bg-success">Verified</span>
+                                        @else
+                                            <span class="badge bg-warning">Unverified</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($user->last_login_at)
+                                            <span class="small" title="{{ $user->last_login_at->format('Y-m-d H:i:s') }}">
+                                                {{ $user->last_login_at->diffForHumans() }}
                                             </span>
-                                            @if($user->email_verified_at)
-                                                <span class="badge bg-success">Verified</span>
-                                            @else
-                                                <span class="badge bg-warning">Unverified</span>
+                                        @else
+                                            <span class="text-muted">Never</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-info"
+                                                title="View">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-warning"
+                                                title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            @if($user->id !== auth()->id())
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                    onclick="confirmDelete({{ $user->id }})" title="Delete">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                                <form id="delete-form-{{ $user->id }}"
+                                                    action="{{ route('admin.users.destroy', $user) }}" method="POST" class="d-none">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                </form>
                                             @endif
-                                        </td>
-                                        <td>
-                                            @if($user->last_login_at)
-                                                <span class="small">{{ $user->last_login_at->diffForHumans() }}</span>
-                                            @else
-                                                <span class="text-muted">Never</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <a href="{{ route('admin.users.show', $user) }}" class="btn btn-sm btn-info">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-sm btn-warning">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                @if($user->id !== auth()->id())
-                                                    <form action="{{ route('admin.users.destroy', $user) }}" method="POST"
-                                                        class="d-inline">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-sm btn-danger"
-                                                            onclick="return confirm('Delete this user?')">
-                                                            <i class="fas fa-trash"></i>
-                                                        </button>
-                                                    </form>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="8" class="text-center text-muted py-4">No users found.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        <i class="fas fa-users fa-3x mb-3"></i>
+                                        <p>No users found.</p>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
 
-                    @if($users->hasPages())
-                        <div class="d-flex justify-content-center mt-4">
-                            {{ $users->links() }}
-                        </div>
-                    @endif
+                @if(method_exists($users, 'links'))
+                    <div class="d-flex justify-content-center mt-4">
+                        {{ $users->links() }}
+                    </div>
                 @endif
             </div>
         </div>
@@ -203,5 +207,23 @@
         .avatar-placeholder {
             background: linear-gradient(45deg, #6c5ce7, #a29bfe);
         }
+
+        .btn-group .btn {
+            margin-right: 2px;
+        }
+
+        .btn-group .btn:last-child {
+            margin-right: 0;
+        }
     </style>
+@endpush
+
+@push('scripts')
+    <script>
+        function confirmDelete(userId) {
+            if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                document.getElementById('delete-form-' + userId).submit();
+            }
+        }
+    </script>
 @endpush

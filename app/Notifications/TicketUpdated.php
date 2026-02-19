@@ -1,5 +1,5 @@
 <?php
-// app/Notifications/TicketAssigned.php
+// app/Notifications/TicketUpdated.php
 
 namespace App\Notifications;
 
@@ -11,17 +11,19 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 use Illuminate\Notifications\Messages\BroadcastMessage;
 
-class TicketAssigned extends Notification 
+class TicketUpdated extends Notification 
 {
   use Queueable;
 
   protected $ticket;
-  protected $assignedBy;
+  protected $user;
+  protected $changes;
 
-  public function __construct(Ticket $ticket, User $assignedBy)
+  public function __construct(Ticket $ticket, User $user, array $changes = [])
   {
     $this->ticket = $ticket;
-    $this->assignedBy = $assignedBy;
+    $this->user = $user;
+    $this->changes = $changes;
   }
 
   public function via($notifiable)
@@ -32,16 +34,14 @@ class TicketAssigned extends Notification
   public function toMail($notifiable)
   {
     return (new MailMessage)
-      ->subject('Ticket Assigned to You: ' . $this->ticket->ticket_number)
+      ->subject('Ticket Updated: ' . $this->ticket->ticket_number)
       ->greeting('Hello ' . $notifiable->name . '!')
-      ->line('A new ticket has been assigned to you by ' . $this->assignedBy->name)
-      ->line('Ticket #: ' . $this->ticket->ticket_number)
+      ->line('Ticket #' . $this->ticket->ticket_number . ' has been updated by ' . $this->user->name)
       ->line('Title: ' . $this->ticket->title)
+      ->line('Current Status: ' . ucfirst(str_replace('_', ' ', $this->ticket->status)))
       ->line('Priority: ' . ucfirst($this->ticket->priority))
-      ->line('Category: ' . ucfirst(str_replace('_', ' ', $this->ticket->category)))
-      ->line('Due Date: ' . ($this->ticket->due_date ? $this->ticket->due_date->format('M d, Y') : 'Not set'))
       ->action('View Ticket', url('/admin/tickets/' . $this->ticket->id))
-      ->line('Please review and take necessary action.');
+      ->line('Thank you for using our ticket system!');
   }
 
   public function toDatabase($notifiable)
@@ -50,15 +50,14 @@ class TicketAssigned extends Notification
       'ticket_id' => $this->ticket->id,
       'ticket_number' => $this->ticket->ticket_number,
       'title' => $this->ticket->title,
-      'assigned_by_id' => $this->assignedBy->id,
-      'assigned_by_name' => $this->assignedBy->name,
-      'priority' => $this->ticket->priority,
-      'due_date' => $this->ticket->due_date,
-      'message' => $this->assignedBy->name . ' assigned you to ticket #' . $this->ticket->ticket_number,
-      'type' => 'ticket_assigned',
+      'user_id' => $this->user->id,
+      'user_name' => $this->user->name,
+      'message' => $this->user->name . ' updated ticket #' . $this->ticket->ticket_number,
+      'type' => 'ticket_updated',
+      'changes' => $this->changes,
       'action_url' => route('admin.tickets.show', $this->ticket),
-      'icon' => 'user-check',
-      'color' => 'success'
+      'icon' => 'pencil',
+      'color' => 'warning'
     ];
   }
 
@@ -67,8 +66,7 @@ class TicketAssigned extends Notification
     return new BroadcastMessage([
       'ticket_id' => $this->ticket->id,
       'ticket_number' => $this->ticket->ticket_number,
-      'message' => 'New ticket assigned to you',
-      'priority' => $this->ticket->priority,
+      'message' => $this->user->name . ' updated ticket #' . $this->ticket->ticket_number,
       'time' => now()->diffForHumans()
     ]);
   }

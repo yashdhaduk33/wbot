@@ -5,11 +5,11 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens; // Correct namespace
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable; // Fixed trait
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -21,7 +21,8 @@ class User extends Authenticatable
         'email',
         'password',
         'role_id',
-        'department_id'
+        'department_id',
+        'is_active',
     ];
 
     /**
@@ -42,6 +43,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_active' => 'boolean',
     ];
 
     /**
@@ -69,13 +71,7 @@ class User extends Authenticatable
             return false;
         }
 
-        // Check by slug or name
-        if ($this->role->slug) {
-            return in_array($this->role->slug, ['admin', 'super-admin', 'administrator']);
-        }
-
-        // Check by name if slug doesn't exist
-        return in_array(strtolower($this->role->name), ['admin', 'super admin', 'administrator']);
+        return in_array($this->role->slug, ['admin', 'super-admin', 'administrator']);
     }
 
     /**
@@ -87,11 +83,7 @@ class User extends Authenticatable
             return false;
         }
 
-        if ($this->role->slug) {
-            return $this->role->slug === 'super-admin';
-        }
-
-        return strtolower($this->role->name) === 'super admin';
+        return $this->role->slug === 'super-admin';
     }
 
     /**
@@ -99,10 +91,33 @@ class User extends Authenticatable
      */
     public function hasPermission($permission)
     {
-        if ($this->role) {
-            return $this->role->hasPermission($permission);
+        if (!$this->role) {
+            return false;
         }
+
+        $permissions = $this->role->permissions ?? [];
+
+        if (is_string($permission)) {
+            return in_array($permission, $permissions);
+        }
+
+        if (is_array($permission)) {
+            return !empty(array_intersect($permission, $permissions));
+        }
+
         return false;
+    }
+
+    /**
+     * Get all permissions for the user.
+     */
+    public function getAllPermissions()
+    {
+        if (!$this->role) {
+            return collect([]);
+        }
+
+        return collect($this->role->permissions ?? []);
     }
 
     /**
@@ -129,6 +144,30 @@ class User extends Authenticatable
         return $this->role ? $this->role->name : 'No Role';
     }
 
+    /**
+     * Check if user account is active.
+     */
+    public function isActive()
+    {
+        return $this->is_active;
+    }
+
+    /**
+     * Scope a query to only include active users.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
+
+    /**
+     * Scope a query to only include inactive users.
+     */
+    public function scopeInactive($query)
+    {
+        return $query->where('is_active', false);
+    }
+
     public function createdTickets()
     {
         return $this->hasMany(Ticket::class, 'created_by');
@@ -144,16 +183,37 @@ class User extends Authenticatable
         return $this->hasMany(TicketComment::class);
     }
 
+    /**
+     * Get the user's notifications
+     */
     public function notifications()
     {
         return $this->morphMany(\Illuminate\Notifications\DatabaseNotification::class, 'notifiable')
             ->orderBy('created_at', 'desc');
     }
 
+    /**
+     * Get the user's unread notifications
+     */
+    public function unreadNotifications()
+    {
+        return $this->morphMany(\Illuminate\Notifications\DatabaseNotification::class, 'notifiable')
+            ->whereNull('read_at');
+    }
+
+    /**
+     * Get count of unread notifications
+     */
     public function unreadNotificationsCount()
     {
         return $this->unreadNotifications()->count();
     }
 
-    
+    /**
+     * Mark all notifications as read
+     */
+    public function markAllNotificationsAsRead()
+    {
+        return $this->unreadNotifications()->update(['read_at' => now()]);
+    }
 }

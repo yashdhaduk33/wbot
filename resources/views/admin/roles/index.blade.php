@@ -2,7 +2,7 @@
 
 @section('title', 'Roles Management')
 
-@section('admin-content')
+@section('content')
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="h3 mb-0">Roles Management</h1>

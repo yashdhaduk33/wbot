@@ -23,16 +23,32 @@ class LoginController extends Controller
      */
     protected function authenticated(Request $request, $user)
     {
+        // Check if account is deactivated
         if (!$user->is_active) {
             auth()->logout();
-            return redirect()->route('login')->withErrors(['email' => 'Your account has been deactivated.']);
+            
+            // Use with() for flash message instead of withErrors()
+            return redirect()->route('login')
+                ->with('error', 'Your account has been deactivated.')
+                ->withInput($request->only('email'));
         }
 
         if ($user->isAdmin()) {
-            $intended = $request->input('intended') ?: route('admin.dashboard');
-            return redirect()->intended($intended);
+            return redirect()->intended(route('admin.dashboard'));
         }
 
-        return redirect()->intended($this->redirectPath());
+        return redirect()->intended($this->redirectTo);
+    }
+
+    /**
+     * Get the failed login response instance.
+     */
+    protected function sendFailedLoginResponse(Request $request)
+    {
+        return redirect()->back()
+            ->withInput($request->only('email', 'remember'))
+            ->withErrors([
+                'email' => trans('auth.failed'),
+            ]);
     }
 }

@@ -129,22 +129,20 @@
               </div>
 
               <div class="mb-3">
-                <label class="form-label">Roles *</label>
-                <div class="row">
+                <label for="role_id" class="form-label">Role *</label>
+                <select class="form-select @error('role_id') is-invalid @enderror" id="role_id" name="role_id" required>
+                  <option value="">Select Role</option>
                   @foreach($roles as $role)
-                    <div class="col-md-4 mb-2">
-                      <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="roles[]" value="{{ $role->id }}"
-                          id="role_{{ $role->id }}" {{ in_array($role->id, old('roles', $user->roles->pluck('id')->toArray())) ? 'checked' : '' }}>
-                        <label class="form-check-label" for="role_{{ $role . id }}">
-                          {{ $role->name }}
-                        </label>
-                      </div>
-                    </div>
+                    <option value="{{ $role->id }}" {{ (old('role_id') ?? $user->role_id) == $role->id ? 'selected' : '' }}>
+                      {{ $role->name }}
+                      @if(!$role->is_active)
+                        (Inactive)
+                      @endif
+                    </option>
                   @endforeach
-                </div>
-                @error('roles')
-                  <div class="text-danger small">{{ $message }}</div>
+                </select>
+                @error('role_id')
+                  <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
               </div>
 

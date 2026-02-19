@@ -23,15 +23,37 @@ class Role extends Model
         'is_active' => 'boolean'
     ];
 
-    // Relationship with users
+    /**
+     * Get the users for the role.
+     */
     public function users()
     {
         return $this->hasMany(User::class);
     }
 
-    // Check if role has specific permission
+    /**
+     * Check if role has a specific permission.
+     */
     public function hasPermission($permission)
     {
-        return in_array($permission, $this->permissions ?? []);
+        $permissions = $this->permissions ?? [];
+
+        if (is_string($permission)) {
+            return in_array($permission, $permissions);
+        }
+
+        if (is_array($permission)) {
+            return !empty(array_intersect($permission, $permissions));
+        }
+
+        return false;
+    }
+
+    /**
+     * Get permissions as collection.
+     */
+    public function getPermissionsListAttribute()
+    {
+        return collect($this->permissions ?? []);
     }
 }

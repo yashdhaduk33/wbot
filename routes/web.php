@@ -7,7 +7,7 @@ use App\Http\Controllers\WhatsAppBotController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\DepartmentController;
-use App\Http\Controllers\Admin\TicketController; // Make sure this import is present
+use App\Http\Controllers\TicketController; // Make sure this import is present
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -33,10 +33,20 @@ Route::get('/admin/login', function () {
 // Admin panel (auth + admin role required)
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
-    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
 
+    // Notifications routes (add inside your auth middleware group)
+    Route::prefix('notifications')->name('notifications.')->group(function () {
+        Route::get('/', [App\Http\Controllers\NotificationController::class, 'index'])->name('index');
+        Route::get('/unread-count', [App\Http\Controllers\NotificationController::class, 'getUnreadCount'])->name('unread-count');
+        Route::get('/recent', [App\Http\Controllers\NotificationController::class, 'getRecent'])->name('recent');
+        Route::post('/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('read');
+        Route::post('/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+        Route::delete('/{id}', [App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
+        Route::delete('/clear/all', [App\Http\Controllers\NotificationController::class, 'clearAll'])->name('clear-all');
+    });
     // ==================== TICKET MANAGEMENT ====================
     // IMPORTANT: Define ALL custom routes BEFORE the resource route
+    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
     // Custom dashboard route - MUST come before resource
     Route::get('tickets/dashboard', [TicketController::class, 'dashboard'])
         ->name('tickets.dashboard');

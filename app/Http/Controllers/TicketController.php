@@ -1,7 +1,7 @@
 <?php
 // app/Http/Controllers/Admin/TicketController.php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\Ticket;
@@ -107,6 +107,11 @@ class TicketController extends Controller
         'ip_address' => $request->ip()
       ]);
 
+      // Send assignment notification if assigned
+      if ($ticket->assigned_to) {
+        $ticket->sendAssignmentNotification(auth()->user());
+      }
+
       // Handle attachments
       if ($request->hasFile('attachments')) {
         foreach ($request->file('attachments') as $file) {
@@ -166,9 +171,31 @@ class TicketController extends Controller
     ]);
 
     DB::transaction(function () use ($validated, $ticket, $request) {
+      $oldData = $ticket->only(['title', 'priority', 'category', 'due_date', 'assigned_to']);
       $oldAssignedTo = $ticket->assigned_to;
 
       $ticket->update($validated);
+
+      // Track changes for notification
+      $changes = [];
+      foreach ($validated as $key => $value) {
+        if (in_array($key, ['title', 'priority', 'category', 'due_date']) && isset($oldData[$key]) && $oldData[$key] != $value) {
+          $changes[$key] = [
+            'old' => $oldData[$key],
+            'new' => $value
+          ];
+        }
+      }
+
+      // Send update notification if there were changes
+      if (!empty($changes)) {
+        $ticket->sendUpdateNotification(auth()->user(), $changes);
+      }
+
+      // If assignment changed, send assignment notification
+      if ($oldAssignedTo != $ticket->assigned_to && $ticket->assigned_to) {
+        $ticket->sendAssignmentNotification(auth()->user());
+      }
 
       $ticket->activities()->create([
         'user_id' => auth()->id(),
@@ -216,6 +243,11 @@ class TicketController extends Controller
         'comment' => $validated['comment'],
         'is_internal' => $request->has('is_internal')
       ]);
+
+      // Send notification only for public comments
+      if (!$comment->is_internal) {
+        $ticket->sendCommentNotification($comment, auth()->user());
+      }
 
       if ($request->hasFile('attachments')) {
         foreach ($request->file('attachments') as $file) {
@@ -279,6 +311,9 @@ class TicketController extends Controller
             'ip_address' => $request->ip()
           ]);
       }
+
+      // Send status change notification
+      $ticket->sendStatusChangeNotification($oldStatus, auth()->user());
     });
 
     return redirect()->route('admin.tickets.show', $ticket)
@@ -296,7 +331,14 @@ class TicketController extends Controller
 
     DB::transaction(function () use ($validated, $ticket, $request) {
       $newAssignee = User::find($validated['assigned_to']);
+      $oldAssignedTo = $ticket->assigned_to;
+
       $ticket->assignTo($newAssignee);
+
+      // Send notification only if assigned to a different user
+      if ($oldAssignedTo != $newAssignee->id) {
+        $ticket->sendAssignmentNotification(auth()->user());
+      }
     });
 
     return redirect()->route('admin.tickets.show', $ticket)

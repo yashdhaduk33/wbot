@@ -3,6 +3,10 @@
 
 namespace App\Models;
 
+use App\Notifications\TicketAssigned;
+use App\Notifications\TicketCommented;
+use App\Notifications\TicketStatusChanged;
+use App\Notifications\TicketUpdated;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -191,5 +195,66 @@ class Ticket extends Model
       'action' => 'reopened',
       'details' => 'Ticket reopened'
     ]);
+  }
+
+  /**
+   * Send notification when ticket is assigned
+   */
+  public function sendAssignmentNotification(User $assignedBy)
+  {
+    if ($this->assigned_to) {
+      $assignedUser = User::find($this->assigned_to);
+      if ($assignedUser) {
+        $assignedUser->notify(new TicketAssigned($this, $assignedBy));
+      }
+    }
+  }
+
+  /**
+   * Send notification when status changes
+   */
+  public function sendStatusChangeNotification($oldStatus, User $changedBy)
+  {
+    // Notify the assigned user
+    if ($this->assigned_to && $this->assigned_to != $changedBy->id) {
+      $this->assignedTo->notify(new TicketStatusChanged($this, $oldStatus, $changedBy));
+    }
+
+    // Notify the creator if they're not the one who changed it
+    if ($this->created_by && $this->created_by != $changedBy->id) {
+      $this->creator->notify(new TicketStatusChanged($this, $oldStatus, $changedBy));
+    }
+  }
+
+  /**
+   * Send notification when comment is added
+   */
+  public function sendCommentNotification(TicketComment $comment, User $commenter)
+  {
+    // Notify assigned user
+    if ($this->assigned_to && $this->assigned_to != $commenter->id) {
+      $this->assignedTo->notify(new TicketCommented($this, $comment, $commenter));
+    }
+
+    // Notify creator if they're not the commenter
+    if ($this->created_by && $this->created_by != $commenter->id) {
+      $this->creator->notify(new TicketCommented($this, $comment, $commenter));
+    }
+  }
+
+  /**
+   * Send notification when ticket is updated
+   */
+  public function sendUpdateNotification(User $updatedBy, array $changes = [])
+  {
+    // Notify assigned user
+    if ($this->assigned_to && $this->assigned_to != $updatedBy->id) {
+      $this->assignedTo->notify(new TicketUpdated($this, $updatedBy, $changes));
+    }
+
+    // Notify creator if they're not the updater
+    if ($this->created_by && $this->created_by != $updatedBy->id) {
+      $this->creator->notify(new TicketUpdated($this, $updatedBy, $changes));
+    }
   }
 }

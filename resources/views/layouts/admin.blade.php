@@ -119,6 +119,52 @@
             font-size: 0.875rem;
             vertical-align: middle;
         }
+
+        /* Notifications dropdown */
+        .notifications-dropdown {
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            animation: dropdownFade 0.2s ease;
+        }
+
+        @keyframes dropdownFade {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification-item {
+            transition: background-color 0.2s;
+            color: #1e293b;
+        }
+
+        .notification-item:hover {
+            background-color: #f8fafc;
+        }
+
+        .notification-item.unread {
+            background-color: #f0f9ff;
+        }
+
+        .notification-item.unread:hover {
+            background-color: #e0f2fe;
+        }
+
+        .notification-icon {
+            transition: background-color 0.2s;
+        }
+
+        /* Ensure dropdown stays above other content */
+        .dropdown-menu {
+            z-index: 1050;
+        }
     </style>
 </head>
 
@@ -292,7 +338,8 @@
         </aside>
         <div class="admin-main d-flex flex-column flex-grow-1">
             <header class="admin-navbar navbar navbar-expand bg-white align-items-center justify-content-end px-3">
-                <div class="d-flex gap-2">
+                <div class="d-flex gap-2 align-items-center">
+                    <!-- View site button (unchanged) -->
                     <a href="{{ route('home') }}" class="admin-navbar-icon btn btn-light border" title="View site">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"
                             stroke="currentColor">
@@ -300,13 +347,39 @@
                                 d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
                     </a>
-                    <button type="button" class="admin-navbar-icon btn btn-light border" title="Notifications">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24"
-                            stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                        </svg>
-                    </button>
+
+                    <!-- Notifications dropdown -->
+                    <div class="dropdown" id="notificationsDropdown">
+                        <button class="admin-navbar-icon btn btn-light border position-relative" type="button"
+                            id="notificationBell" data-bs-toggle="dropdown" data-bs-auto-close="outside"
+                            aria-expanded="false" title="Notifications">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
+                                viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                            </svg>
+                            <span
+                                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger notification-badge"
+                                style="font-size: 0.65rem; padding: 0.25rem 0.4rem; display: none;">
+                                0
+                                <span class="visually-hidden">unread notifications</span>
+                            </span>
+                        </button>
+
+                        <div class="dropdown-menu dropdown-menu-end notifications-dropdown p-0"
+                            style="width: 360px; max-width: 90vw;" aria-labelledby="notificationBell">
+                            <!-- Header will be populated by JavaScript -->
+                            <!-- Loading indicator -->
+                            <div class="text-center py-4" id="notifications-loading">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 mb-0 small text-muted">Loading notifications...</p>
+                            </div>
+                            <!-- Notifications list container -->
+                            <div id="notifications-list-container" style="display: none;"></div>
+                        </div>
+                    </div>
                 </div>
             </header>
             <main class="admin-content p-4">
@@ -352,6 +425,190 @@
                     bsAlert.close();
                 });
             }, 5000);
+
+            // Notifications dropdown logic
+            const notificationDropdown = document.getElementById('notificationsDropdown');
+            const bellButton = document.getElementById('notificationBell');
+            const badge = document.querySelector('.notification-badge');
+            const loadingEl = document.getElementById('notifications-loading');
+            const listContainer = document.getElementById('notifications-list-container');
+
+            // Function to fetch notifications and update UI
+            function loadNotifications() {
+                fetch('{{ route("admin.notifications.recent") }}', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update badge
+                        const unreadCount = data.unread_count;
+                        if (unreadCount > 0) {
+                            badge.textContent = unreadCount > 9 ? '9+' : unreadCount;
+                            badge.style.display = 'inline';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+
+                        // Hide loading, show list container
+                        loadingEl.style.display = 'none';
+                        listContainer.style.display = 'block';
+
+                        // Render notifications
+                        renderNotifications(data.notifications);
+                    })
+                    .catch(error => {
+                        console.error('Error loading notifications:', error);
+                        loadingEl.innerHTML = '<p class="text-danger small">Failed to load notifications.</p>';
+                    });
+            }
+
+            // Render notifications list
+            function renderNotifications(notifications) {
+                if (!notifications || notifications.length === 0) {
+                    listContainer.innerHTML = `
+                    <div class="dropdown-item text-center py-4 text-muted">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="mb-2">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                        </svg>
+                        <p class="mb-0">No notifications</p>
+                    </div>
+                `;
+                    return;
+                }
+
+                let html = `
+                <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+                    <h6 class="mb-0 fw-semibold">Notifications</h6>
+                    <form method="POST" action="{{ route('admin.notifications.mark-all-read') }}" class="d-inline mark-all-read-form">
+                        @csrf
+                        <button type="submit" class="btn btn-link p-0 text-decoration-none small" style="font-size: 0.8rem;">Mark all as read</button>
+                    </form>
+                </div>
+                <div class="notification-list" style="max-height: 400px; overflow-y: auto;">
+            `;
+
+                notifications.forEach(notif => {
+                    const isUnread = !notif.read_at;
+                    const iconColor = isUnread ? '#2563eb' : '#64748b';
+                    const bgColor = isUnread ? '#e6f0ff' : '#f1f5f9';
+                    const title = notif.data.title || 'Notification';
+                    const message = notif.data.message || '';
+                    const actionUrl = notif.data.action_url || '#';
+                    const time = notif.created_at;
+
+                    html += `
+                    <a href="${actionUrl}" class="dropdown-item notification-item ${isUnread ? 'unread' : 'read'} px-3 py-2 border-bottom d-flex align-items-start gap-2 text-decoration-none" data-notification-id="${notif.id}">
+                        <div class="flex-shrink-0">
+                            <div class="notification-icon rounded-circle d-flex align-items-center justify-content-center" style="width: 36px; height: 36px; background-color: ${bgColor};">
+                                ${notif.data.icon ? `<i class="${notif.data.icon}" style="color: ${iconColor};"></i>` : `
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="color: ${iconColor};">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                `}
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="d-flex justify-content-between align-items-baseline">
+                                <p class="mb-0 small fw-semibold ${!isUnread ? 'text-muted' : ''}">${title}</p>
+                                <small class="text-muted ms-2" style="font-size: 0.7rem;">${time}</small>
+                            </div>
+                            <p class="mb-0 small text-muted text-truncate">${message}</p>
+                        </div>
+                        ${isUnread ? '<span class="badge bg-primary rounded-circle p-1 ms-1" style="width: 8px; height: 8px;"></span>' : ''}
+                    </a>
+                `;
+                });
+
+                html += `
+                </div>
+                <div class="border-top text-center p-2">
+                    <a href="{{ route('admin.notifications.index') }}" class="text-decoration-none small">View all notifications</a>
+                </div>
+            `;
+
+                listContainer.innerHTML = html;
+
+                // Attach click handlers to mark single notification as read via AJAX
+                document.querySelectorAll('.notification-item.unread').forEach(item => {
+                    item.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        const notifId = this.dataset.notificationId;
+                        const href = this.getAttribute('href');
+
+                        fetch(`/admin/notifications/${notifId}/read`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        })
+                            .then(() => {
+                                window.location.href = href;
+                            })
+                            .catch(() => {
+                                window.location.href = href;
+                            });
+                    });
+                });
+
+                // Handle "Mark all as read" via AJAX
+                const markAllForm = listContainer.querySelector('.mark-all-read-form');
+                if (markAllForm) {
+                    markAllForm.addEventListener('submit', function (e) {
+                        e.preventDefault();
+                        fetch(this.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        })
+                            .then(response => response.json())
+                            .then(() => {
+                                // Reload notifications to reflect changes
+                                loadNotifications();
+                                badge.style.display = 'none';
+                            })
+                            .catch(error => console.error('Error marking all as read:', error));
+                    });
+                }
+            }
+
+            // Load notifications when dropdown is shown
+            bellButton.addEventListener('show.bs.dropdown', function () {
+                loadNotifications();
+            });
+
+            // Periodically update the unread count
+            function updateUnreadCount() {
+                fetch('{{ route("admin.notifications.unread-count") }}', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.count > 0) {
+                            badge.textContent = data.count > 9 ? '9+' : data.count;
+                            badge.style.display = 'inline';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    })
+                    .catch(error => console.error('Error updating unread count:', error));
+            }
+
+            // Update count every 30 seconds
+            setInterval(updateUnreadCount, 30000);
+
+            // Initial count on page load
+            updateUnreadCount();
         });
     </script>
 </body>

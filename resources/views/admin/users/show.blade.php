@@ -117,8 +117,8 @@
               </div>
               <div class="col-6 mb-3">
                 <div class="border rounded p-2">
-                  <h5 class="mb-0">{{ $user->roles->count() }}</h5>
-                  <small class="text-muted">Roles</small>
+                  <h5 class="mb-0">{{ $user->role ? 1 : 0 }}</h5>
+                  <small class="text-muted">Role</small>
                 </div>
               </div>
             </div>
@@ -129,36 +129,43 @@
       <div class="col-md-8">
         <div class="card shadow mb-4">
           <div class="card-header bg-primary text-white">
-            <h6 class="mb-0"><i class="fas fa-key"></i> Roles & Permissions</h6>
+            <h6 class="mb-0"><i class="fas fa-key"></i> Role & Permissions</h6>
           </div>
           <div class="card-body">
-            <h6 class="mb-3">Assigned Roles ({{ $user->roles->count() }})</h6>
+            <h6 class="mb-3">Assigned Role</h6>
             <div class="mb-4">
-              @forelse($user->roles as $role)
+              @if($user->role)
                 <span class="badge bg-primary me-2 mb-2" style="font-size: 0.9rem; padding: 0.5rem 0.8rem;">
-                  {{ $role->name }}
+                  {{ $user->role->name }}
                 </span>
-              @empty
-                <p class="text-muted mb-0">No roles assigned</p>
-              @endforelse
+                @if(!$user->role->is_active)
+                  <span class="badge bg-warning">Inactive Role</span>
+                @endif
+              @else
+                <p class="text-muted mb-0">No role assigned</p>
+              @endif
             </div>
 
-            <h6 class="mb-3">Permissions Summary</h6>
-            @php
-              $permissions = $user->getAllPermissions();
-            @endphp
-            @if($permissions->count() > 0)
-              <div class="row">
-                @foreach($permissions->chunk(3) as $chunk)
-                  @foreach($chunk as $permission)
-                    <div class="col-md-4 mb-2">
-                      <span class="badge bg-success p-2 d-block">
-                        {{ $permission->name }}
-                      </span>
-                    </div>
+            <h6 class="mb-3">Permissions</h6>
+            @if($user->role && !empty($user->role->permissions))
+              @php
+                $permissions = is_array($user->role->permissions) ? $user->role->permissions : json_decode($user->role->permissions, true);
+              @endphp
+              @if(count($permissions) > 0)
+                <div class="row">
+                  @foreach(array_chunk($permissions, 3) as $chunk)
+                    @foreach($chunk as $permission)
+                      <div class="col-md-4 mb-2">
+                        <span class="badge bg-success p-2 d-block">
+                          {{ $permission }}
+                        </span>
+                      </div>
+                    @endforeach
                   @endforeach
-                @endforeach
-              </div>
+                </div>
+              @else
+                <p class="text-muted mb-0">No permissions assigned to this role</p>
+              @endif
             @else
               <p class="text-muted mb-0">No permissions assigned</p>
             @endif
