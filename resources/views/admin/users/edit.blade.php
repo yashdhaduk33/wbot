@@ -154,13 +154,13 @@
                 </div>
               </div>
 
-              <div class="mb-3">
+              <!-- <div class="mb-3">
                 <div class="form-check form-switch">
                   <input class="form-check-input" type="checkbox" role="switch" id="email_verified" name="email_verified"
                     value="1" {{ (old('email_verified') ?? $user->email_verified_at) ? 'checked' : '' }}>
                   <label class="form-check-label" for="email_verified">Email Verified</label>
                 </div>
-              </div>
+              </div> -->
 
               <div class="d-flex justify-content-between">
                 <a href="{{ route('admin.users.index') }}" class="btn btn-secondary">

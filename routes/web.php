@@ -7,7 +7,7 @@ use App\Http\Controllers\WhatsAppBotController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\DepartmentController;
-use App\Http\Controllers\TicketController; // Make sure this import is present
+use App\Http\Controllers\TicketController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -33,8 +33,9 @@ Route::get('/admin/login', function () {
 // Admin panel (auth + admin role required)
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
+    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
 
-    // Notifications routes (add inside your auth middleware group)
+    // Notifications routes
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [App\Http\Controllers\NotificationController::class, 'index'])->name('index');
         Route::get('/unread-count', [App\Http\Controllers\NotificationController::class, 'getUnreadCount'])->name('unread-count');
@@ -44,22 +45,26 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
         Route::delete('/{id}', [App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
         Route::delete('/clear/all', [App\Http\Controllers\NotificationController::class, 'clearAll'])->name('clear-all');
     });
+
     // ==================== TICKET MANAGEMENT ====================
-    // IMPORTANT: Define ALL custom routes BEFORE the resource route
-    Route::get('/', [AdminController::class, 'dashboard'])->name('dashboard');
-    // Custom dashboard route - MUST come before resource
+    // IMPORTANT: All custom routes MUST come BEFORE the resource route
+
+    // Custom dashboard route
     Route::get('tickets/dashboard', [TicketController::class, 'dashboard'])
         ->name('tickets.dashboard');
 
-    // Download attachment route - custom parameter
+    // Custom search orders route (moved before resource to avoid conflict)
+    Route::get('tickets/search-orders', [TicketController::class, 'searchOrders'])
+        ->name('tickets.search-orders');  // ✅ Correct name – will become admin.tickets.search-orders
+
+    // Download attachment route
     Route::get('attachments/{attachment}/download', [TicketController::class, 'downloadAttachment'])
         ->name('tickets.attachments.download');
 
-    // Resource route for tickets (this creates index, create, store, show, edit, update, destroy)
-    // This should come after custom routes to avoid conflicts
+    // Resource route for tickets (creates index, create, store, show, edit, update, destroy)
     Route::resource('tickets', TicketController::class);
 
-    // Additional POST routes - these should come AFTER resource to ensure they don't conflict with show
+    // Additional POST routes (these come after resource but are fine because they use specific paths)
     Route::post('tickets/{ticket}/comments', [TicketController::class, 'addComment'])
         ->name('tickets.comments');
 

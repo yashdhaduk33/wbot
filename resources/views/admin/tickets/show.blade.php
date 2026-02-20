@@ -100,6 +100,222 @@
         </div>
       </div>
 
+      {{-- Order Payment Information Card --}}
+      @if($ticket->order)
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 fw-semibold">Order Payment Information</h5>
+            {{-- Optional link to order detail page --}}
+            {{-- <a href="{{ route('admin.orders.show', $ticket->order->id) }}" class="btn btn-sm btn-outline-primary">View
+              Full Order</a> --}}
+          </div>
+          <div class="card-body p-4">
+            <div class="row g-3">
+              {{-- Customer & Order Info --}}
+              <div class="col-md-6">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Customer Number</small>
+                  <span class="fw-semibold">{{ $ticket->order->customerNumber ?? 'N/A' }}</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Order Date</small>
+                  <span class="fw-semibold">
+                    {{ $ticket->order->date ? \Carbon\Carbon::parse($ticket->order->date)->format('M d, Y') : 'N/A' }}
+                  </span>
+                </div>
+              </div>
+
+              {{-- Financial Summary --}}
+              <div class="col-12">
+                <hr class="my-2">
+                <h6 class="fw-semibold mb-3">Financial Summary</h6>
+              </div>
+
+              <div class="col-md-4">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Prepaid</small>
+                  <span class="fw-semibold">{{ number_format($ticket->order->prepaid, 2) }}</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Final Price</small>
+                  <span class="fw-semibold">{{ number_format($ticket->order->finalPrice, 2) }}</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">COD</small>
+                  <span class="fw-semibold">{{ number_format($ticket->order->COD, 2) }}</span>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Discount</small>
+                  <span class="fw-semibold">{{ number_format($ticket->order->discount, 2) }}</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Tax</small>
+                  <span class="fw-semibold">{{ number_format($ticket->order->tax, 2) }}</span>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Total Amount</small>
+                  <span class="fw-semibold">{{ number_format($ticket->order->totalAmount, 2) }}</span>
+                </div>
+              </div>
+
+              {{-- Payment Details --}}
+              <div class="col-12">
+                <hr class="my-2">
+                <h6 class="fw-semibold mb-3">Payment Details</h6>
+              </div>
+
+              <div class="col-md-6">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Payment Form ID</small>
+                  <span class="fw-semibold">{{ $ticket->order->paymentFormId ?? 'N/A' }}</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Payment ID</small>
+                  <span class="fw-semibold">{{ $ticket->order->payment_id ?? 'N/A' }}</span>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Overall Quantity</small>
+                  <span class="fw-semibold">{{ $ticket->order->overall_quantity ?? 'N/A' }}</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Weight</small>
+                  <span class="fw-semibold">{{ $ticket->order->weight ? $ticket->order->weight . ' kg' : 'N/A' }}</span>
+                </div>
+              </div>
+
+              {{-- Accounting Codes --}}
+
+              <div class="col-12">
+                <div class="d-flex flex-column">
+                  <small class="text-muted">Overview Status</small>
+                  <span class="fw-semibold">
+                    @if($ticket->order->overviewStatus == 1)
+                      <span class="badge bg-success">Active</span>
+                    @else
+                      <span class="badge bg-secondary">Inactive</span>
+                    @endif
+                  </span>
+                </div>
+              </div>
+
+              {{-- Optional extra fields --}}
+              @if($ticket->order->totalBuyingPrice)
+                <div class="col-md-6">
+                  <div class="d-flex flex-column">
+                    <small class="text-muted">Total Buying Price</small>
+                    <span class="fw-semibold">${{ number_format($ticket->order->totalBuyingPrice, 2) }}</span>
+                  </div>
+                </div>
+              @endif
+
+              @if($ticket->order->time)
+                <div class="col-md-6">
+                  <div class="d-flex flex-column">
+                    <small class="text-muted">Order Time</small>
+                    <span class="fw-semibold">{{ $ticket->order->time }}</span>
+                  </div>
+                </div>
+              @endif
+            </div>
+          </div>
+        </div>
+      @endif
+
+      @if($ticket->order && $ticket->order->orderedproducts->count() > 0)
+        <div class="card border-0 shadow-sm mb-4">
+          <div class="card-header bg-white border-0 py-3">
+            <h5 class="mb-0 fw-semibold">
+              Ordered Products ({{ $ticket->order->orderedproducts->count() }})
+            </h5>
+          </div>
+
+          <div class="card-body p-4">
+
+            @php $grandTotal = 0; @endphp
+
+            @foreach($ticket->order->orderedproducts as $product)
+              @php
+                $total = $product->price * $product->quantity;
+                $grandTotal += $total;
+              @endphp
+
+              <div class="d-flex align-items-center border rounded p-3 mb-3 bg-light bg-opacity-50">
+
+                {{-- Product Image --}}
+                <div class="me-3">
+                  <img src="{{ $product->image }}" alt="{{ $product->name }}" class="rounded"
+                    style="width:70px; height:70px; object-fit:cover;">
+                </div>
+
+                {{-- Product Info --}}
+                <div class="flex-grow-1">
+                  <h6 class="mb-1 fw-semibold">{{ $product->name }}</h6>
+                  <small class="text-muted">
+                    SKU: {{ $product->SKU }} |
+                    Size: {{ $product->size }}
+                  </small>
+                </div>
+
+                {{-- Price --}}
+                <div class="text-center me-4">
+                  <small class="text-muted d-block">Price</small>
+                  <span class="fw-semibold">
+                    ₹{{ number_format($product->price, 2) }}
+                  </span>
+                </div>
+
+                {{-- Quantity --}}
+                <div class="text-center me-4">
+                  <small class="text-muted d-block">Qty</small>
+                  <span class="badge bg-primary px-3 py-2">
+                    {{ $product->quantity }}
+                  </span>
+                </div>
+
+                {{-- Total --}}
+                <div class="text-end">
+                  <small class="text-muted d-block">Total</small>
+                  <span class="fw-bold text-success">
+                    ₹{{ number_format($total, 2) }}
+                  </span>
+                </div>
+
+              </div>
+            @endforeach
+
+            {{-- Grand Total --}}
+            <div class="border-top pt-3 text-end">
+              <h5 class="fw-bold">
+                Grand Total:
+                <span class="text-success">
+                  ₹{{ number_format($grandTotal, 2) }}
+                </span>
+              </h5>
+            </div>
+
+          </div>
+        </div>
+      @endif
       {{-- Comments Section --}}
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-header bg-white border-0 py-3">

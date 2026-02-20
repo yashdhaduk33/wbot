@@ -4,6 +4,8 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Models\Order4p;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Models\Department;
@@ -66,8 +68,10 @@ class TicketController extends Controller
   {
     $users = User::all();
     $departments = Department::where('is_active', true)->get();
+    // Optional: pass recent orders for initial select2 placeholder
+    $recentOrders = Order::orderBy('id', 'desc')->limit(10)->get();
 
-    return view('admin.tickets.create', compact('users', 'departments'));
+    return view('admin.tickets.create', compact('users', 'departments', 'recentOrders'));
   }
 
   /**
@@ -83,65 +87,70 @@ class TicketController extends Controller
       'department_id' => 'nullable|exists:departments,id',
       'assigned_to' => 'nullable|exists:users,id',
       'due_date' => 'nullable|date',
+
+      // ✅ FIXED
+      'order_id' => 'nullable|exists:second_mysql.order,id',
+
       'attachments.*' => 'nullable|file|max:10240|mimes:jpg,jpeg,png,pdf,doc,docx,xls,xlsx,txt'
     ]);
 
     DB::transaction(function () use ($validated, $request) {
+
       $ticket = Ticket::create([
         'title' => $validated['title'],
         'description' => $validated['description'],
         'priority' => $validated['priority'],
         'category' => $validated['category'],
-        'department_id' => $validated['department_id'],
-        'assigned_to' => $validated['assigned_to'],
-        'due_date' => $validated['due_date'],
+        'department_id' => $validated['department_id'] ?? null,
+        'assigned_to' => $validated['assigned_to'] ?? null,
+        'due_date' => $validated['due_date'] ?? null,
+        'order_id' => $validated['order_id'] ?? null, // ✅ CORRECT
         'created_by' => auth()->id(),
         'status' => 'open'
       ]);
-
-      // Log activity
-      $ticket->activities()->create([
-        'user_id' => auth()->id(),
-        'action' => 'created',
-        'details' => 'Ticket created',
-        'ip_address' => $request->ip()
-      ]);
-
-      // Send assignment notification if assigned
-      if ($ticket->assigned_to) {
-        $ticket->sendAssignmentNotification(auth()->user());
-      }
-
-      // Handle attachments
-      if ($request->hasFile('attachments')) {
-        foreach ($request->file('attachments') as $file) {
-          $path = $file->store('tickets/' . $ticket->id, 'public');
-
-          $ticket->attachments()->create([
-            'user_id' => auth()->id(),
-            'filename' => basename($path),
-            'original_filename' => $file->getClientOriginalName(),
-            'file_path' => $path,
-            'file_size' => $file->getSize(),
-            'mime_type' => $file->getMimeType()
-          ]);
-        }
-      }
     });
 
-    return redirect()->route('admin.tickets.index')
-      ->with('success', 'Ticket created successfully.');
+    return redirect()->route('admin.tickets.index')->with('success', 'Ticket created successfully.');
   }
 
+  /**
+   * AJAX endpoint for searching orders by ID or customerNumber.
+   */
+  public function searchOrders(Request $request)
+  {
+    $search = $request->get('q');
+
+    $orders1 = Order::where(function ($query) use ($search) {
+      $query->where('id', $search)
+        ->orWhere('customerNumber', 'LIKE', "%{$search}%");
+    })
+      ->limit(20)
+      ->get(['id', 'customerNumber', 'date']);
+
+    $orders2 = Order4p::where(function ($query) use ($search) {
+      $query->where('id', $search)
+        ->orWhere('customerNumber', 'LIKE', "%{$search}%");
+    })
+      ->limit(20)
+      ->get(['id', 'customerNumber', 'date']);
+
+    // Merge both results
+    $orders = $orders1->merge($orders2);
+
+    return response()->json($orders);
+  }
   /**
    * Display the specified ticket.
    */
   public function show(Ticket $ticket)
   {
-    $ticket->load(['creator', 'assignedTo', 'department', 'comments.user', 'attachments', 'activities.user']);
-    $users = User::all();
+    // Eager load relationships on the already retrieved ticket
+    $ticket->load(['order.orderedproducts', 'comments.user', 'attachments', 'creator', 'assignedTo', 'activities']);
 
-    return view('admin.tickets.show', compact('ticket', 'users'));
+    $users = User::all();
+    $externalUser = $ticket->external_user; // if this is an accessor
+
+    return view('admin.tickets.show', compact('ticket', 'users', 'externalUser'));
   }
 
   /**
